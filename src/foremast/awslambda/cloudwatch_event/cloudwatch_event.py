@@ -13,7 +13,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
+import collections
 import json
 import logging
 
@@ -23,6 +23,56 @@ from ...exceptions import InvalidEventConfiguration
 from ...utils import add_lambda_permissions, get_env_credential, get_lambda_arn
 
 LOG = logging.getLogger(__name__)
+
+
+def validate_rule(app_name='', rule={}):
+    """Validate CloudWatch Event rule.
+
+    Args:
+        app_name (str): Name of the Lambda Function.
+        rule (dict): Trigger rule from settings.
+
+    Returns:
+        CloudWatchEventRule: `collections.namedtuple` containing Rule
+        properties.
+
+            * description
+            * json_input
+            * name
+            * schedule
+    """
+    CloudWatchEventRule = collections.namedtuple('CloudWatchEventRule', [
+        'description',
+        'json_input',
+        'name',
+        'schedule',
+    ])
+
+    json_input = rule.get('json_input', {})
+    name = rule.get('rule_name')
+    schedule = rule.get('schedule')
+
+    if schedule is None:
+        LOG.critical('Schedule is required and no schedule is defined!')
+        raise InvalidEventConfiguration('Schedule is required and no schedule is defined!')
+
+    if name is None:
+        LOG.critical('Rule name is required and no rule_name is defined!')
+        raise InvalidEventConfiguration('Rule name is required and no rule_name is defined!')
+    else:
+        LOG.info('%s and %s', app_name, name)
+        name = "{}_{}".format(app_name, name.replace(' ', '_'))
+
+    description = rule.get('rule_description', '{app} - {name}'.format(app=app_name, name=name))
+
+    event_rule = CloudWatchEventRule(
+        description=description,
+        json_input=json_input,
+        name=name,
+        schedule=schedule, )
+
+    LOG.debug('Validated Event Rule: %s', event_rule)
+    return event_rule
 
 
 def create_cloudwatch_event(app_name, env, region, rules):
