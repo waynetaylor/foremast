@@ -42,13 +42,14 @@ class SpinnakerPipelineS3(SpinnakerPipeline):
         prop_path (str): Path to the raw.properties.json.
     """
 
-    def render_wrapper(self, region='us-east-1'):
+    def render_wrapper(self, region='us-east-1', main_pipeline=True):
         """Generate the base Pipeline wrapper.
 
         This renders the non-repeatable stages in a pipeline, like jenkins, baking, tagging and notifications.
 
         Args:
             region (str): AWS Region.
+            main_pipeline (bool): True or false if master pipeline or alt. Used for A-B pipelines
 
         Returns:
             dict: Rendered Pipeline wrapper.
@@ -65,6 +66,7 @@ class SpinnakerPipelineS3(SpinnakerPipeline):
         pipeline_id = self.compare_with_existing(region=region)
 
         data = {
+            'main_pipeline': main_pipeline,
             'app': {
                 'appname': self.app_name,
                 'base': base,
@@ -108,9 +110,10 @@ class SpinnakerPipelineS3(SpinnakerPipeline):
 
         pipelines = {}
         for region, envs in regions_envs.items():
-            # TODO: Overrides for an environment no longer makes sense. Need to
-            # provide override for entire Region possibly.
-            pipelines[region] = self.render_wrapper(region=region)
+            
+            pipelines[region]['main'] = self.render_wrapper(region=region, main_pipeline=True)
+            if self.settings.get('a_b_pipelines'):
+                pipelines[region]['alt'] = self.render_wrapper(region=region, main_pipeline=False)
 
             previous_env = None
             for env in envs:
@@ -128,9 +131,11 @@ class SpinnakerPipelineS3(SpinnakerPipeline):
 
         self.log.debug('Assembled Pipelines:\n%s', pformat(pipelines))
 
-        for region, pipeline in pipelines.items():
-            renumerate_stages(pipeline)
-
+        for regionpipeline in pipelines:
+            pipeline = renumerate_stages(regionpipeline['main']])
             self.post_pipeline(pipeline)
+            if regionpipeline.get('alt'):
+                alt_pipeline = renumerate_stages(regionpipeline['alt']])
+                self.post_pipeline(alt_pipeline)
 
         return True

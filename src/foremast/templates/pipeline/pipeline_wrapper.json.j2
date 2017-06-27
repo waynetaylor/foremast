@@ -1,12 +1,23 @@
 {
-  "name": "{{ data.app.appname }} [{{ data.app.region }}]",
+  {% if data.app.deploy_type == "s3" %}
+    {% if datata.main_pipeline %}
+      "name": "{{ data.app.appname }} [{{ data.app.region }}] - Main",
+      "triggers": [
+        {% include "pipeline/trigger-jenkins.json.j2" %}
+      ],
+    {% else %}
+      "name": "{{ data.app.appname }} [{{ data.app.region }}] - Alternate",
+    {% endif %}
+  {% else %}
+    "name": "{{ data.app.appname }} [{{ data.app.region }}]",
+    "triggers": [
+      {% include "pipeline/trigger-jenkins.json.j2" %}
+    ],
+  {% endif %}
   {% if data.id %}
   "id": "{{ data.id }}",
   {% endif %}
   "application": "{{ data.app.appname }}",
-  "triggers": [
-    {% include "pipeline/trigger-jenkins.json.j2" %}
-  ],
   "limitConcurrent": false,
   "parallel": true,
   "notifications": [
