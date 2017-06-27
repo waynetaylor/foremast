@@ -17,15 +17,8 @@
 """Create Pipelines for Spinnaker."""
 import collections
 import json
-import logging
-import os
 from pprint import pformat
 
-import requests
-
-from ..consts import API_URL
-from ..exceptions import SpinnakerPipelineCreationFailed
-from ..utils import get_details, get_properties, get_template
 from .clean_pipelines import clean_pipelines
 from .construct_pipeline_block_s3 import construct_pipeline_block_s3
 from .create_pipeline import SpinnakerPipeline
@@ -132,10 +125,10 @@ class SpinnakerPipelineS3(SpinnakerPipeline):
         self.log.debug('Assembled Pipelines:\n%s', pformat(pipelines))
 
         for regionpipeline in pipelines:
-            pipeline = renumerate_stages(regionpipeline['main']])
+            pipeline = renumerate_stages(regionpipeline['main'])
             self.post_pipeline(pipeline)
             if regionpipeline.get('alt'):
-                alt_pipeline = renumerate_stages(regionpipeline['alt']])
+                alt_pipeline = renumerate_stages(regionpipeline['alt'])
                 self.post_pipeline(alt_pipeline)
 
         return True
