@@ -4,7 +4,8 @@ deepmerge
 gogo-utils
 jinja2
 murl
-python-gitlab
+pluginbase
+pyapi-gitlab
 requests
-tryagain
 slacker
+tryagain
