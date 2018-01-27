@@ -83,6 +83,9 @@ def format_listeners(elb_settings=None, env='dev', region='us-east-1'):
 
     if 'ports' in elb_settings:
         for listener in elb_settings['ports']:
+            if not isinstance(listener, list):
+                raise ValueError('ELB ports must be a list of listeners.')
+
             cert_name = format_cert_name(
                 env=env, region=region, account=account, certificate=listener.get('certificate', None))
 
