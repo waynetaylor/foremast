@@ -89,6 +89,7 @@ def format_listeners(elb_settings=None, env='dev', region='us-east-1'):
             cert_name = format_cert_name(
                 env=env, region=region, account=account, certificate=listener.get('certificate', None))
 
+            # TODO: Need defaults on these
             lb_proto, lb_port = listener['loadbalancer'].split(':')
             i_proto, i_port = listener['instance'].split(':')
             listener_policies = listener.get('policies', [])
