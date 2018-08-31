@@ -284,6 +284,31 @@ class SpinnakerPipeline:
 
                 previous_env = env
 
+    def assemble_pipelines(self):
+        """Return rendered Pipeline per Region."""
+        pipelines = {}
+
+        for pipeline_vars in self.iter_region_env():
+            if pipeline_vars.region not in pipelines:
+                pipelines[pipeline_vars.region] = self.render_wrapper(region=pipeline_vars.region)
+
+            pipeline_block_data = {
+                'env': pipeline_vars.env,
+                'generated': self.generated,
+                'pipeline_data': self.settings['pipeline'],
+                'previous_env': pipeline_vars.previous_env,
+                'region': pipeline_vars.region,
+                'region_subnets': pipeline_vars.region_subnets,
+                'settings': self.settings[pipeline_vars.env][pipeline_vars.region],
+            }
+
+            block = construct_pipeline_block(**pipeline_block_data)
+            pipelines[pipeline_vars.region]['stages'].extend(json.loads(block))
+
+        self.log.debug('Assembled Pipelines:\n%s', pformat(pipelines))
+
+        return pipelines
+
     def create_pipeline(self):
         """Main wrapper for pipeline creation.
         1. Runs clean_pipelines to clean up existing ones
