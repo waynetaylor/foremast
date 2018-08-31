@@ -29,6 +29,26 @@ from .clean_pipelines import clean_pipelines
 from .construct_pipeline_block import construct_pipeline_block
 from .renumerate_stages import renumerate_stages
 
+PipelineVars = collections.namedtuple('PipelineVars', [
+    'env',
+    'is_ec2_pipeline',
+    'next_env',
+    'previous_env',
+    'region',
+    'region_subnets',
+])
+"""Pipeline variables for use during iteration.
+
+Attributes:
+    env (str): Name of Deployment Environment.
+    is_ec2_pipeline (bool): Inform caller to use EC2 logic when :obj:`True`.
+    next_env (str): Name of next Deployment Environment.
+    previous_env (str): Name of last Deployment Environment.
+    region (str): Name of Region.
+    region_subnets (list): Available Subnets in the specified Region.
+
+"""
+
 
 class SpinnakerPipeline:
     """Manipulate Spinnaker Pipelines.
@@ -211,6 +231,58 @@ class SpinnakerPipeline:
             self.log.info('No existing pipeline found')
 
         return pipeline_id
+
+    def iter_region_env(self):
+        """Iterate over Pipeline Environment and Region variables.
+
+        Yields:
+            PipelineVars: Pipeline Region and Environment names.
+
+        """
+        pipeline_envs = self.environments
+        self.log.debug('Envs from pipeline.json: %s', pipeline_envs)
+
+        regions_envs = collections.defaultdict(list)
+        for env in pipeline_envs:
+            for region in self.settings[env]['regions']:
+                regions_envs[region].append(env)
+        self.log.info('Environments and Regions for Pipelines:\n%s', json.dumps(regions_envs, indent=4))
+
+        is_ec2_pipeline = self.settings['pipeline']['type'] in EC2_PIPELINE_TYPES
+        spinnaker_subnets = None
+        if is_ec2_pipeline:
+            spinnaker_subnets = get_subnets()
+
+        next_env = None
+        previous_env = None
+        for region, envs in regions_envs.items():
+            for index, env in enumerate(envs):
+                try:
+                    next_env = pipeline_envs[index + 1]
+                except IndexError:
+                    next_env = None
+
+                region_subnets = None
+
+                if is_ec2_pipeline:
+                    try:
+                        subnets = spinnaker_subnets[env][region]
+                    except KeyError:
+                        self.log.info('%s is not available for %s.', env, region)
+                        continue
+                    else:
+                        region_subnets = {region: subnets}
+
+                yield PipelineVars(
+                    env=env,
+                    is_ec2_pipeline=is_ec2_pipeline,
+                    next_env=next_env,
+                    previous_env=previous_env,
+                    region=region,
+                    region_subnets=region_subnets,
+                )
+
+                previous_env = env
 
     def create_pipeline(self):
         """Main wrapper for pipeline creation.
