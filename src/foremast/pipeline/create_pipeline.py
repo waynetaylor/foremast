@@ -58,34 +58,59 @@ class SpinnakerPipeline:
         self.settings = get_properties(prop_path)
         self.environments = self.settings['pipeline']['env']
 
+    @staticmethod
+    def to_dict(pipeline):
+        """Make sure we are using a :obj:`dict`."""
+        pipeline_dict = None
+        if isinstance(pipeline, str):
+            pipeline_dict = json.loads(pipeline)
+        elif isinstance(pipeline, dict):
+            pipeline_dict = pipeline
+        else:
+            raise ValueError('Pipeline must be dict or str, not {0}: {1}'.format(type(pipeline), pipeline))
+        return pipeline_dict
+
+    def before_post_pipeline(self, pipeline_dict):
+        """Pipeline hook for before sending to Spinnaker."""
+        return pipeline_dict
+
+    def after_post_pipeline(self, pipeline_dict):
+        """Pipeline hook for after sending to Spinnaker."""
+        return pipeline_dict
+
     def post_pipeline(self, pipeline):
         """Send Pipeline JSON to Spinnaker.
 
         Args:
-            pipeline (json): json of the pipeline to be created in Spinnaker
+            pipeline (dict, str): New Pipeline to create.
+
         """
+        pipeline_dict = self.to_dict(pipeline)
+
+        pipeline_dict = self.before_post_pipeline(pipeline_dict)
+        self._post_pipeline(pipeline_dict)
+        pipeline_dict = self.after_post_pipeline(pipeline_dict)
+
+        return pipeline_dict
+
+    def _post_pipeline(self, pipeline_dict):
+        """POST Pipeline to Spinnaker."""
         url = "{0}/pipelines".format(API_URL)
 
-        if isinstance(pipeline, str):
-            pipeline_json = pipeline
-        else:
-            pipeline_json = json.dumps(pipeline)
+        self.log.debug('Pipeline JSON:\n%s', pipeline_dict)
 
-        pipeline_dict = json.loads(pipeline_json)
+        response = requests.post(
+            url, data=pipeline_dict, headers=self.header, verify=GATE_CA_BUNDLE, cert=GATE_CLIENT_CERT)
 
-        self.log.debug('Pipeline JSON:\n%s', pipeline_json)
+        self.log.debug('Pipeline creation response:\n%s', response.text)
 
-        pipeline_response = requests.post(
-            url, data=pipeline_json, headers=self.header, verify=GATE_CA_BUNDLE, cert=GATE_CLIENT_CERT)
-
-        self.log.debug('Pipeline creation response:\n%s', pipeline_response.text)
-
-        if not pipeline_response.ok:
-            raise SpinnakerPipelineCreationFailed('Pipeline for {0}: {1}'.format(self.app_name,
-                                                                                 pipeline_response.json()))
+        if not response.ok:
+            raise SpinnakerPipelineCreationFailed('Pipeline for {0}: {1}'.format(self.app_name, response.json()))
 
         self.log.info('Successfully created "%s" pipeline in application "%s".', pipeline_dict['name'],
                       pipeline_dict['application'])
+
+        return response
 
     def render_wrapper(self, region='us-east-1'):
         """Generate the base Pipeline wrapper.
