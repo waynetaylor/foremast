@@ -90,11 +90,13 @@ class SpinnakerPipeline:
             raise ValueError('Pipeline must be dict or str, not {0}: {1}'.format(type(pipeline), pipeline))
         return pipeline_dict
 
-    def before_post_pipeline(self, pipeline_dict):
+    def before_post_pipeline(self, pipeline_dict):  # pylint: disable=no-self-use
         """Pipeline hook for before sending to Spinnaker."""
+        renumerate_stages(pipeline_dict)
+
         return pipeline_dict
 
-    def after_post_pipeline(self, pipeline_dict):
+    def after_post_pipeline(self, pipeline_dict):  # pylint: disable=no-self-use
         """Pipeline hook for after sending to Spinnaker."""
         return pipeline_dict
 
