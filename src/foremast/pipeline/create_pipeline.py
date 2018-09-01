@@ -310,61 +310,11 @@ class SpinnakerPipeline:
         return pipelines
 
     def create_pipeline(self):
-        """Main wrapper for pipeline creation.
-        1. Runs clean_pipelines to clean up existing ones
-        2. determines which environments the pipeline needs
-        3. gets all subnets for template rendering
-        4. Renders all of the pipeline blocks as defined in configs
-        5. Runs post_pipeline to create pipeline
-        """
+        """Entry point for pipeline creation."""
+        pipelines = self.assemble_pipelines()
         clean_pipelines(app=self.app_name, settings=self.settings)
 
-        pipeline_envs = self.environments
-        self.log.debug('Envs from pipeline.json: %s', pipeline_envs)
-
-        regions_envs = collections.defaultdict(list)
-        for env in pipeline_envs:
-            for region in self.settings[env]['regions']:
-                regions_envs[region].append(env)
-        self.log.info('Environments and Regions for Pipelines:\n%s', json.dumps(regions_envs, indent=4))
-
-        subnets = None
-        pipelines = {}
-        for region, envs in regions_envs.items():
-            # TODO: Overrides for an environment no longer makes sense. Need to
-            # provide override for entire Region possibly.
-            pipelines[region] = self.render_wrapper(region=region)
-
-            previous_env = None
-            for env in envs:
-                pipeline_block_data = {
-                    "env": env,
-                    "generated": self.generated,
-                    "previous_env": previous_env,
-                    "region": region,
-                    "settings": self.settings[env][region],
-                    "pipeline_data": self.settings['pipeline'],
-                }
-
-                if self.settings['pipeline']['type'] in EC2_PIPELINE_TYPES:
-                    if not subnets:
-                        subnets = get_subnets()
-                    try:
-                        region_subnets = {region: subnets[env][region]}
-                    except KeyError:
-                        self.log.info('%s is not available for %s.', env, region)
-                        continue
-                    pipeline_block_data['region_subnets'] = region_subnets
-
-                block = construct_pipeline_block(**pipeline_block_data)
-                pipelines[region]['stages'].extend(json.loads(block))
-                previous_env = env
-
-        self.log.debug('Assembled Pipelines:\n%s', pformat(pipelines))
-
-        for region, pipeline in pipelines.items():
-            renumerate_stages(pipeline)
-
+        for __region, pipeline in pipelines.items():
             self.post_pipeline(pipeline)
 
-        return True
+        return pipelines

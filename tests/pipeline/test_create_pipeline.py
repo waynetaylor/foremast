@@ -93,4 +93,4 @@ def test_create_pipeline_ec2(mock_post, mock_renumerate, mock_construct, mock_su
     mock_construct.assert_called_with(**test_block_data)
     mock_post.assert_called_with({'stages': ['test']})
 
-    assert created == True
+    assert created
