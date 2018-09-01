@@ -244,12 +244,6 @@ class SpinnakerPipeline:
         pipeline_envs = self.environments
         self.log.debug('Envs from pipeline.json: %s', pipeline_envs)
 
-        regions_envs = collections.defaultdict(list)
-        for env in pipeline_envs:
-            for region in self.settings[env]['regions']:
-                regions_envs[region].append(env)
-        self.log.info('Environments and Regions for Pipelines:\n%s', json.dumps(regions_envs, indent=4))
-
         is_ec2_pipeline = self.settings['pipeline']['type'] in EC2_PIPELINE_TYPES
         spinnaker_subnets = None
         if is_ec2_pipeline:
@@ -257,8 +251,8 @@ class SpinnakerPipeline:
 
         next_env = None
         previous_env = None
-        for region, envs in regions_envs.items():
-            for index, env in enumerate(envs):
+        for index, env in enumerate(pipeline_envs):
+            for region in self.settings[env]['regions']:
                 try:
                     next_env = pipeline_envs[index + 1]
                 except IndexError:
