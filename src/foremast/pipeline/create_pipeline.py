@@ -187,16 +187,8 @@ class SpinnakerPipeline:
 
         return pipeline_id
 
-    def create_pipeline(self):
-        """Main wrapper for pipeline creation.
-        1. Runs clean_pipelines to clean up existing ones
-        2. determines which environments the pipeline needs
-        3. gets all subnets for template rendering
-        4. Renders all of the pipeline blocks as defined in configs
-        5. Runs post_pipeline to create pipeline
-        """
-        clean_pipelines(app=self.app_name, settings=self.settings)
-
+    def assemble_pipelines(self):
+        """Construct Pipelines for each Environment and Region."""
         pipeline_envs = self.environments
         self.log.debug('Envs from pipeline.json: %s', pipeline_envs)
 
@@ -247,8 +239,21 @@ class SpinnakerPipeline:
                 previous_env = env
 
         self.log.debug('Assembled Pipelines:\n%s', pformat(pipelines))
+        return pipelines
 
-        for region, pipeline in pipelines.items():
+    def create_pipeline(self):
+        """Main wrapper for pipeline creation.
+        1. Runs clean_pipelines to clean up existing ones
+        2. determines which environments the pipeline needs
+        3. gets all subnets for template rendering
+        4. Renders all of the pipeline blocks as defined in configs
+        5. Runs post_pipeline to create pipeline
+        """
+        clean_pipelines(app=self.app_name, settings=self.settings)
+
+        pipelines = self.assemble_pipelines()
+
+        for __region, pipeline in pipelines.items():
             renumerate_stages(pipeline)
 
             self.post_pipeline(pipeline)
