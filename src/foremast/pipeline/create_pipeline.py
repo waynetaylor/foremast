@@ -234,6 +234,19 @@ class SpinnakerPipeline:
 
         return pipeline_id
 
+    def before_iter_region_env_yields(self, pipeline_vars):
+        """Pipeline hook for before yielding :obj:`PipelineVars`."""
+        self.generated.data.update({
+            'env': pipeline_vars.env,
+            'next_env': pipeline_vars.next_env,
+            'region': pipeline_vars.region,
+        })
+        return pipeline_vars
+
+    def after_iter_region_env_yields(self, pipeline_vars):
+        """Pipeline hook for after yielding :obj:`PipelineVars`."""
+        return pipeline_vars
+
     def iter_region_env(self):
         """Iterate over Pipeline Environment and Region variables.
 
@@ -269,7 +282,7 @@ class SpinnakerPipeline:
                     else:
                         region_subnets = {region: subnets}
 
-                yield PipelineVars(
+                pipeline_vars = PipelineVars(
                     env=env,
                     is_ec2_pipeline=is_ec2_pipeline,
                     next_env=next_env,
@@ -277,6 +290,10 @@ class SpinnakerPipeline:
                     region=region,
                     region_subnets=region_subnets,
                 )
+
+                pipeline_vars = self.before_iter_region_env_yields(pipeline_vars=pipeline_vars)
+                yield pipeline_vars
+                self.after_iter_region_env_yields(pipeline_vars=pipeline_vars)
 
                 previous_env = env
 
