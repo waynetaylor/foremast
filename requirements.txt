@@ -5,7 +5,7 @@ gogo-utils
 jinja2
 murl
 pluginbase
-pyapi-gitlab
+python-gitlab
 requests
 slacker
 tryagain
