@@ -19,6 +19,7 @@ from ..utils import get_properties, remove_all_lambda_permissions
 from .api_gateway_event import APIGateway
 from .cloudwatch_event import create_cloudwatch_event
 from .cloudwatch_log_event import create_cloudwatch_log_event
+from .kinesis_stream_event import create_kinesis_stream_event
 from .s3_event import create_s3_event
 from .sns_event import create_sns_event
 
@@ -51,9 +52,11 @@ class LambdaEvent:
         triggers = self.properties['lambda_triggers']
 
         for trigger in triggers:
-
-            if trigger['type'] == 'sns':
-                create_sns_event(app_name=self.app_name, env=self.env, region=self.region, rules=trigger)
+                
+            if trigger['type'] == 'api-gateway':
+                apigateway = APIGateway(
+                    app=self.app_name, env=self.env, region=self.region, rules=trigger, prop_path=self.prop_path)
+                apigateway.setup_lambda_api()
 
             if trigger['type'] == 'cloudwatch-event':
                 create_cloudwatch_event(app_name=self.app_name, env=self.env, region=self.region, rules=trigger)
@@ -61,10 +64,11 @@ class LambdaEvent:
             if trigger['type'] == 'cloudwatch-logs':
                 create_cloudwatch_log_event(app_name=self.app_name, env=self.env, region=self.region, rules=trigger)
 
-            if trigger['type'] == 'api-gateway':
-                apigateway = APIGateway(
-                    app=self.app_name, env=self.env, region=self.region, rules=trigger, prop_path=self.prop_path)
-                apigateway.setup_lambda_api()
+            if trigger['type'] == 'kinesis-stream':
+                create_kinesis_stream_event(app_name=self.app_name, env=self.env, region=self.region, rules=trigger)
+                
+            if trigger['type'] == 'sns':
+                create_sns_event(app_name=self.app_name, env=self.env, region=self.region, rules=trigger)
 
         # filter all triggers to isolate s3 triggers so we can operate on the entire group
         s3_triggers = [x for x in triggers if x['type'] == 's3']

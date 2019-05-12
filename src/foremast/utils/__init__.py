@@ -36,4 +36,5 @@ from .get_cloudwatch_event_rule import get_cloudwatch_event_rule
 from .awslambda import *
 from .get_sns_subscriptions import get_sns_subscriptions
 from .get_sns_topic_arn import get_sns_topic_arn
+from .get_kinesis_stream_arn import get_kinesis_stream_arn
 from .roles import *

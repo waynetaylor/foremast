@@ -144,6 +144,8 @@ class SpinnakerSubnetError(SpinnakerError):
 class InvalidEventConfiguration(ForemastError):
     """Invalid AWS Lambda event configuration."""
 
+class KinesisStreamNotFound(ForemastError):
+    """Kinesis Stream was not found."""
 
 class SNSTopicNotFound(ForemastError):
     """SNS Topic was not found."""
